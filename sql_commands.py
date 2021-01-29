@@ -11,6 +11,7 @@ def execute_sql(query: str):
         while '  ' in query:
             query = query.replace('  ', ' ')
         db_cursor.execute(query)
+        db_connector.commit()
     except Exception as e:
         print(query, '\n\n', e)
         quit()
