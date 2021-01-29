@@ -75,7 +75,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
     page_id, max_pages = 1, 19
     while page_id <= max_pages:
         try:
-            print(f"\n\n\nCrawling page {page_id} ...")
+            print(f"\n\t\tCrawling page {page_id} ...")
             # Get the review details
             WebDriverWait(driver, timeout=random.randint(6,9)).until(
                 method=expected_conditions.visibility_of_all_elements_located(
@@ -92,8 +92,10 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             # Read review content
             content = raw_review.find_element_by_css_selector("[class='item-content']")
             # print(BS(content.get_attribute('innerHTML'), features="html5lib").prettify())
-            review = content.find_element_by_css_selector("[class='content']").text# Filter-out non-text reviews
-            if review != '' or review.strip():
+            review = content.find_element_by_css_selector("[class='content']").text
+            
+            # Filter-out non-text reviews
+            if not (review != '' or review.strip()):
                 continue
 
             # Read number of likes for this review
@@ -120,6 +122,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
                 pass
 
             insert_new_review([review, is_verified, n_likes, rating, product_id])
+            print('\t\t\t', review, is_verified, n_likes, rating, product_id)
 
         try:
             # Check out-of-page
@@ -185,15 +188,11 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             query = f'SELECT id FROM products WHERE title = "{product_info[0]}" AND category_id = "{category_id}"'
             execute_sql(query)
             product_id = db_cursor.fetchone()[0]
-
             crawl_single_product(driver, product_info[1], product_id)
-            db_connector.commit()
 
             # close tab
             driver.close() 
             driver.switch_to.window(current_tab)
-
-        db_connector.commit()
 
         try:
             random_sleep()
@@ -218,7 +217,6 @@ if __name__ == "__main__":
 
     # Step 1: Get all categories in main page
     all_categories = crawl_all_categories(driver)
-    db_connector.commit()
 
     # Step 2: Get products per categories page-by-page, then crawl their info & reviews
     main_page = driver.current_window_handle
@@ -235,7 +233,6 @@ if __name__ == "__main__":
         category_id = db_cursor.fetchone()[0]
 
         crawl_single_category(driver, category_info[1], category_id)
-        db_connector.commit()
         random_sleep()
 
         # close current tab
@@ -244,28 +241,6 @@ if __name__ == "__main__":
 
     driver.close()
     db_connector.close()
-
-    # product_urls = [
-    #     "https://www.lazada.vn/products/bao-hanh-chinh-hang-12-thang-dien-thoai-nokia-105-2019-1-sim-man-hinh-177-inches-pin-thao-roi-jack-tai-nghe-35-mm-i622450593-s1448884698.html",
-    #     "https://www.lazada.vn/products/tra-gop-0-bao-hanh-12-thang-dien-thoai-vivo-s1-pro-8gb128gb-man-hinh-amoled-638-snapdragon-665-4-camera-sau-48mp-camera-truoc-32mp-pin-4500mah-hang-chinh-hang-bao-hanh-12-thang-i375564718-s628058062.html",
-    #     "https://www.lazada.vn/products/dien-thoai-xiaomi-redmi-note-4x-32g-miui-11-tieng-viet-i870902213-s3988652110.html",
-    #     "https://www.lazada.vn/products/dien-thoai-oppo-reno2-8gb256gb-hang-chinh-hang-i868026221-s2471082897.html",
-    #     "https://www.lazada.vn/products/xiaomi-redmi-note-8-pro-128gb-ram-6gb-shop-online-24-hang-nhap-khau-i334066617-s535480839.html",
-    #     "https://www.lazada.vn/products/dien-thoai-xiaomi-redmi-10x-5g-ram-6128gb-hang-nhap-khau-i937576323-s2825248194.html",
-    #     "https://www.lazada.vn/products/dien-thoai-samsung-s7-edge-man-hinh-cong-2-sim-ram-4gb-bo-nho-32gb-i917992267-s2718960200.html",
-    #     "https://www.lazada.vn/products/glorystar-hang-san-sang-cua-viet-namp20-plus-android-81-dien-thoai-thong-minh-4g-32g-the-kep-face-id-dien-thoai-di-dong-572-inch-man-hinh-lon-i634424810-s1495868495.html",
-    #     "https://www.lazada.vn/products/dien-thoai-iphone-5s-quoc-te-thiet-ke-tinh-te-van-tay-cuc-nhay-bao-hanh-6-thang-1-doi-1-tai-nha-trong-30-ngay-tang-phu-kien-cap-sac-i870546930-s2484028737.html",
-    #     "https://www.lazada.vn/products/nhap-eljan11-giam-10-toi-da-200k-don-tu-99kdien-thoai-xiaomi-mi-max-co-tieng-viet-man-hinh-khung-choi-game-644-inch-i618856028-s1434842157.html",
-    #     "https://www.lazada.vn/products/xiaomi-redmi-note-8-pro-128gb-ram-6gb-shop-online-24-hang-nhap-khau-i334066617-s535480839.html",
-    #     "https://www.lazada.vn/products/dien-thoai-xiaomi-redmi-note-4x-32g-miui-11-tieng-viet-i870902213-s3988652110.html",
-    #     "https://www.lazada.vn/products/glorystar-hang-san-sang-cua-viet-namp20-plus-android-81-dien-thoai-thong-minh-4g-32g-the-kep-face-id-dien-thoai-di-dong-572-inch-man-hinh-lon-i634424810-s1495868495.html",
-    #     "https://www.lazada.vn/products/dien-thoai-iphone-5s-quoc-te-thiet-ke-tinh-te-van-tay-cuc-nhay-bao-hanh-6-thang-1-doi-1-tai-nha-trong-30-ngay-tang-phu-kien-cap-sac-i870546930-s2484028737.html",
-
-    # ]
-    # reviews_df = pd.DataFrame(columns=['reviews', 'is_verified', 'n_likes', 'rating'])
-
-    # reviews_df = crawl_single_product(driver, random.choice(product_urls), reviews_df)
-    # reviews_df.to_csv('test_lazada.csv', index=False)
 
 
 
