@@ -60,7 +60,7 @@ def crawl_all_categories(driver):
             cat_raw.get_attribute('href')[::-1].split('/', 1)[-1][::-1],
             data_source
         ]
-        insert_new_category(category_info)
+        # insert_new_category(category_info)
         categories.append(category_info)
     return categories
 
@@ -97,6 +97,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             # Filter-out non-text reviews
             if not (review != '' or review.strip()):
                 continue
+            review = review.replace('\n', '. ').replace('\t', '. ')
 
             # Read number of likes for this review
             n_likes = content.find_element_by_css_selector("[class='left']")\
@@ -104,14 +105,17 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             # n_likes = content.find_element_by_xpath('//span[@class="left"]/span/span[@class=""]').text
 
             # Read rating
-            rating = 0
-            stars = raw_review.find_element_by_css_selector("[class='top']")\
-                                .find_elements_by_css_selector("[class='star']")
-            # stars = raw_review.find_elements_by_xpath('//div[@class="top"]/div/img[@class="star"]')
-            for star in stars:
-                star_url = star.get_attribute('src')
-                star_image = Image.open(BytesIO(requests.get(url=star_url).content))
-                rating += numberize_visual_star(star_image, positive_star, negative_star)
+            try:
+	            rating = 0
+	            stars = raw_review.find_element_by_css_selector("[class='top']")\
+	                                .find_elements_by_css_selector("[class='star']")
+	            # stars = raw_review.find_elements_by_xpath('//div[@class="top"]/div/img[@class="star"]')
+	            for star in stars:
+	                star_url = star.get_attribute('src')
+	                star_image = Image.open(BytesIO(requests.get(url=star_url).content))
+	                rating += numberize_visual_star(star_image, positive_star, negative_star)
+	        except Exception:
+	        	rating = -1
 
             # Read verification
             is_verified = 'chưa xác thực'
@@ -185,7 +189,8 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             driver.switch_to.window(driver.window_handles[-1])
 
             # crawl products' reviews per category
-            query = f'SELECT id FROM products WHERE title = "{product_info[0]}" AND category_id = "{category_id}"'
+            product_title = product_info[0].replace('"', "'")
+            query = f'SELECT id FROM products WHERE title = "{product_title}" AND category_id = "{category_id}"'
             execute_sql(query)
             product_id = db_cursor.fetchone()[0]
             crawl_single_product(driver, product_info[1], product_id)
@@ -217,6 +222,11 @@ if __name__ == "__main__":
 
     # Step 1: Get all categories in main page
     all_categories = crawl_all_categories(driver)
+    db_cursor.execute("SELECT category_id FROM products;")
+    crawled_category_ids = list(set(
+        np.array(db_cursor.fetchall()).flatten().tolist()
+    ))
+    _ = input(f"Categories crawled: {crawled_category_ids}")
 
     # Step 2: Get products per categories page-by-page, then crawl their info & reviews
     main_page = driver.current_window_handle
@@ -228,12 +238,13 @@ if __name__ == "__main__":
         random_sleep()
 
         # crawl products' reviews per category
-        query = f'SELECT id FROM categories WHERE title = "{category_info[0]}" AND source = "{data_source}"'
+        category_title = category_info[0].replace('"', "'")
+        query = f'SELECT id FROM categories WHERE title = "{category_title}" AND source = "{data_source}"'
         execute_sql(query)
         category_id = db_cursor.fetchone()[0]
-
-        crawl_single_category(driver, category_info[1], category_id)
-        random_sleep()
+        if category_id not in crawled_category_ids:
+            crawl_single_category(driver, category_info[1], category_id)
+            random_sleep()
 
         # close current tab
         driver.close() 
