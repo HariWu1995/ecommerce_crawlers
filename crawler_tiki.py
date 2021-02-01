@@ -135,7 +135,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
     # Scroll down to load all page
     simulate_scroll(driver)
 
-    page_id, max_pages = 1, 27
+    page_id, max_pages = 1, 69
     out_of_pages = False
     while page_id <= max_pages and not out_of_pages:
         print(f"\n\t\tCrawling page {page_id} ...")
@@ -170,15 +170,11 @@ def crawl_single_product(driver, product_url: str, product_id: int):
                 n_likes = -1
 
             # Read rating
-            try:
-                rating = 0
-                stars = raw_review.find_element_by_css_selector('div.Stars__StyledStars-sc-15olgyg-0.jucQbJ')\
-                                    .find_elements_by_tag_name('span')
-                for star in stars:
-                    star_color = star.find_element_by_tag_name('path').get_attribute('fill')
-                    rating += 0 if star_color == 'none' else 1
-            except Exception:
-                rating = -1
+            rating = 0
+            stars = raw_review.find_element_by_css_selector('div.Stars__StyledStars-sc-15olgyg-0.jucQbJ')\
+                                .find_element_by_tag_name('div').get_attribute('style')
+            rating = int(re.sub('[^0-9]', '', stars)) * 5 / 100
+            rating = int(rating)
                 
             # Read verification
             is_verified = 'chưa xác thực'
@@ -204,7 +200,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
 def main():
     # Step 0: Initialize
     initialize_db()
-    driver = initialize_driver()
+    driver = initialize_driver('chrome')
 
     # Step 1: Get all categories in main page
     all_categories = crawl_all_categories(driver)
