@@ -11,6 +11,7 @@ MSEdgeDriver on https://developer.microsoft.com/en-us/microsoft-edge/tools/webdr
 
 # Run
 python crawler_lazada.py
+
 python crawler_tiki.py
 
 
