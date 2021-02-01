@@ -163,7 +163,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
                 n_likes = raw_review.find_element_by_css_selector("[class='review-comment__thank ']")\
                                     .find_element_by_tag_name("span").text
                 n_likes = re.sub('[^0-9]', '', n_likes)
-                if n_likes == '' or n_likes.strip():
+                if n_likes == '':
                     n_likes = 0
                 else:
                     n_likes = int(n_likes)
@@ -194,7 +194,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             # Check out-of-pages
             check_next_page_available = driver.find_elements_by_css_selector('[class="btn next"]')
             if len(check_next_page_available) < 1:
-                print('\t\tOut of pages')
+                print('\n\t\tOut of pages')
                 out_of_pages = True
             else:
                 button_next = driver.find_element_by_css_selector('[class="btn next"]')
@@ -202,7 +202,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
                 random_sleep()
                 page_id += 1
         except Exception as e:
-            print('\t\tOut of pages error:', e)
+            print('\n\t\tOut of pages error:', e)
             out_of_pages = True
             break
 
