@@ -61,7 +61,7 @@ def crawl_all_categories(driver):
             cat_raw.get_attribute('href')[::-1].split('/', 1)[-1][::-1],
             data_source
         ]
-        # insert_new_category(category_info)
+        insert_new_category(category_info)
         categories.append(category_info)
     return categories
 
@@ -96,8 +96,12 @@ def crawl_single_category(driver, category_url: str, category_id: int):
         for product_raw in products_raw:
             product_data = product_raw.find_element_by_css_selector('div.c16H9d')\
                                         .find_element_by_tag_name('a')
+            product_title = product_data.get_attribute('title')
+            if not (product_title != '' or product_title.strip()):
+                continue
+            
             product_info = [
-                product_data.get_attribute('title'), 
+                product_title, 
                 product_data.get_attribute('href').split('?', 1)[0],
                 category_id
             ]
