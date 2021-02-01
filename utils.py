@@ -4,14 +4,29 @@ import random
 
 import numpy as np
 from PIL import Image
+from bs4 import BeautifulSoup as BS
+
+from IPython.display import IFrame, display, HTML
 
 from w3lib.url import url_query_cleaner
 from url_normalize import url_normalize
 
 
+def print_html(content, width=600, height=600):
+    html_content = BS(content.get_attribute('innerHTML'), features="html5lib").get_text()
+    # print(html_content)
+    with open('debug.html', "w") as f:
+        print(html_content, file=f)
+
+
 def random_sleep():
     time.sleep(random.randint(6,9))
 
+
+def debug_html(content):
+    html_content = BS(content.get_attribute('innerHTML'), features="html5lib")#.get_text()
+    print(html_content.prettify())
+    
 
 def numberize_visual_star(star_image: Image, positive_star, negative_star) -> int:
     star_image = np.array(star_image).reshape(64, 64)

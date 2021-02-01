@@ -13,8 +13,8 @@ def execute_sql(query: str):
         db_cursor.execute(query)
         db_connector.commit()
     except Exception as e:
-        print(query, '\n\n', e)
-        quit()
+        print("\n\nQuery Error", query, '\n\n', e)
+        # quit()
 
 
 def insert_new_category(category_info: list or tuple):

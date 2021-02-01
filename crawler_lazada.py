@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+from tqdm import tqdm as print_progress
 
 import csv
 import json
@@ -99,7 +100,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             product_title = product_data.get_attribute('title')
             if not (product_title != '' or product_title.strip()):
                 continue
-            
+
             product_info = [
                 product_title, 
                 product_data.get_attribute('href').split('?', 1)[0],
@@ -170,7 +171,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             # Filter-out non-text reviews
             if not (review != '' or review.strip()):
                 continue
-            review = review.replace('\n', '. ').replace('\t', '. ')
+            review = review.replace('\n', ' . ').replace('\t', ' . ')
 
             # Read number of likes for this review
             n_likes = content.find_element_by_css_selector("[class='left']")\
@@ -219,10 +220,10 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             break
 
 
-def main():
+def main(browser='firefox'):
     # Step 0: Initialize
     initialize_db()
-    driver = initialize_driver()
+    driver = initialize_driver(browser)
 
     # Step 1: Get all categories in main page
     all_categories = crawl_all_categories(driver)
@@ -260,10 +261,14 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        time.sleep(69)
+    while True:
+        try:
+            browser = random.choice(['chrome', 'firefox', 'edge'])
+            main(browser)
+        except Exception as e:
+            print("\n\n\nCrash ... Please wait a few seconds!!!")
+            for t in print_progress(range(69)):
+                time.sleep(1)
 
 
 

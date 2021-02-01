@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+from tqdm import tqdm as print_progress
 
 import csv
 import json
@@ -124,7 +125,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             # if any(ss in html_content.lower() for ss in ['rất tiếc', 'không tìm thấy']):
             #     break
         except Exception as e:
-            print('Out-of-page Error:', e)
+            print('\n\n\nOut-of-page Error:', e)
             out_of_pages = True
 
 
@@ -135,7 +136,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
     # Scroll down to load all page
     simulate_scroll(driver)
 
-    page_id, max_pages = 1, 69
+    page_id, max_pages = 1, 27
     out_of_pages = False
     while page_id <= max_pages and not out_of_pages:
         print(f"\n\t\tCrawling page {page_id} ...")
@@ -155,7 +156,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             if not (review_content != '' or review_content.strip()):
                 continue
             review = '<title> ' + review_title + ' </title> ' + review_content
-            review = review.replace('\n', '. ').replace('\t', '. ')
+            review = review.replace('\n', ' . ').replace('\t', ' . ')
 
             # Read number of likes for this review
             try:
@@ -183,24 +184,33 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             except Exception:
                 pass
 
-            insert_new_review([review, is_verified, n_likes, rating, product_id])
-            print('\t\t\t', review, is_verified, n_likes, rating)
+            try:
+                insert_new_review([review, is_verified, n_likes, rating, product_id])
+                print('\t\t\t', review, is_verified, n_likes, rating)
+            except Exception:
+                print('\n\nCannot insert review\n\t', review)
 
         try:
             # Check out-of-pages
-            button_next = driver.find_element_by_css_selector('[class="btn next"]')
-            driver.execute_script("arguments[0].click();", button_next)
-            random_sleep()
-            page_id += 1
-        except TimeoutException:
-            print('\t\tOut of pages')
+            check_next_page_available = driver.find_elements_by_css_selector('[class="btn next"]')
+            if len(check_next_page_available) < 1:
+                print('\t\tOut of pages')
+                out_of_pages = True
+            else:
+                button_next = driver.find_element_by_css_selector('[class="btn next"]')
+                driver.execute_script("arguments[0].click();", button_next)
+                random_sleep()
+                page_id += 1
+        except Exception as e:
+            print('\t\tOut of pages error:', e)
             out_of_pages = True
+            break
 
 
-def main():
+def main(browser='chrome'):
     # Step 0: Initialize
     initialize_db()
-    driver = initialize_driver('chrome')
+    driver = initialize_driver(browser)
 
     # Step 1: Get all categories in main page
     all_categories = crawl_all_categories(driver)
@@ -239,9 +249,13 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        time.sleep(69)
+    while True:
+        try:
+            browser = random.choice(['chrome', 'firefox', 'edge'])
+            main(browser)
+        except Exception as e:
+            print("\n\n\nCrash ... Please wait a few seconds!!!")
+            for t in print_progress(range(69)):
+                time.sleep(1)
 
 
