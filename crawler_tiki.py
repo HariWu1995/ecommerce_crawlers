@@ -1,0 +1,248 @@
+import os
+import sys
+import time
+
+import csv
+import json
+
+import numpy as np
+import pandas as pd
+import random
+
+import cv2
+from PIL import Image
+from matplotlib import pyplot as plt
+
+import re
+import requests
+from io import BytesIO
+from bs4 import BeautifulSoup as BS
+from urllib import request, response
+
+from selenium import webdriver
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.proxy import *
+from selenium.common.exceptions import *
+
+import sqlite3 as sqllib
+
+from sql_commands import *
+from driver_utils import *
+from utils import *
+
+
+working_dir = os.path.dirname(__file__)
+
+
+# Define global variables
+page_url = 'https://www.tiki.vn/'
+data_source = 'tiki'
+
+
+def crawl_all_categories(driver):
+    driver.get(page_url)
+
+    # Scroll down to load all page
+    simulate_scroll(driver, 5, 1)
+
+    # Crawl
+    categories_raw = driver.find_elements_by_css_selector('[data-view-id="home_top.category_product_item"]')
+    categories = []
+    for cat_raw in categories_raw:
+        category_info = [
+            cat_raw.find_element_by_tag_name('span').text, 
+            cat_raw.get_attribute('href'),
+            data_source
+        ]
+        insert_new_category(category_info)
+        categories.append(category_info)
+    return categories
+
+
+def crawl_single_category(driver, category_url: str, category_id: int):
+    
+    print(f"\n\n\nLoading\n\t{category_url}")
+    driver.get(category_url)
+
+    # Scroll down to load all page
+    simulate_scroll(driver)
+
+    category_url += '/?page={}'
+    all_products = []
+    page_id, max_pages = 1, 69
+    while page_id <= max_pages:
+        print(f"\n\n\nCrawling page {page_id} ...")
+        product_css = '[class="product-item"]'
+        products_raw = driver.find_elements_by_css_selector(product_css)
+        if len(products_raw) < 1:
+            print("Can't find any item!")
+            break
+
+        # Get product info
+        for product_raw in products_raw:
+            product_title = product_raw.find_element_by_css_selector('[class="info"]')\
+                                        .find_element_by_css_selector('[class="name"]')\
+                                        .find_element_by_tag_name('span').text
+            if not (product_title != '' or product_title.strip()):
+                continue
+
+            product_info = [
+                product_title, 
+                product_raw.get_attribute('href').split('?', 1)[0],
+                category_id
+            ]
+            insert_new_product(product_info)
+            all_products.append(product_info)
+
+            # open new tab
+            current_tab = driver.current_window_handle
+            driver.execute_script("window.open('');") 
+            driver.switch_to.window(driver.window_handles[-1])
+
+            # crawl products' reviews per category
+            product_title = product_info[0].replace('"', "'")
+            query = f'SELECT id FROM products WHERE title = "{product_title}" AND category_id = "{category_id}"'
+            execute_sql(query)
+            product_id = db_cursor.fetchone()[0]
+            crawl_single_product(driver, product_info[1], product_id)
+
+            # close tab
+            driver.close() 
+            driver.switch_to.window(current_tab)
+
+        try:
+            page_id += 1
+            driver.get(category_url.format(page_id))
+            random_sleep()
+
+            # Check out-of-page
+            content = driver.find_element_by_tag_name('html')
+            html_content = BS(content.get_attribute('innerHTML'), features="html5lib").get_text()
+            # if any(ss in html_content.lower() for ss in ['rất tiếc', 'không tìm thấy']):
+            #     break
+        except Exception as e:
+            print(e)
+            break
+
+
+def crawl_single_product(driver, product_url: str, product_id: int):
+    print(f"\n\n\nLoading\n\t{product_url}")
+    driver.get(product_url)
+
+    # Scroll down to load all page
+    simulate_scroll(driver)
+
+    page_id, max_pages = 1, 19
+    while page_id <= max_pages:
+        print(f"\n\t\tCrawling page {page_id} ...")
+        review_css = "div.style__StyledComment-sc-103p4dk-5.dDtAUu.review-comment"
+        all_reviews = driver.find_elements_by_css_selector(review_css)
+        if len(all_reviews) < 1:
+            print("Can't find any review!")
+            break
+        
+        # Get product reviews
+        for raw_review in all_reviews:
+            # Read review content
+            review_title = raw_review.find_element_by_css_selector('a.review-comment__title').text
+            review_content = raw_review.find_element_by_css_selector('div.review-comment__content').text
+            review = review_title + '. ' + review_content
+            
+            # Filter-out non-text reviews
+            if not (review != '' or review.strip()):
+                continue
+            review = review.replace('\n', '. ').replace('\t', '. ')
+
+            # Read number of likes for this review
+            try:
+                n_likes = raw_review.find_element_by_css_selector("[class='review-comment__thank ']")\
+                                    .find_element_by_tag_name("span").text
+                n_likes = re.sub('[^0-9]', '', n_likes)
+                if n_likes == '' or n_likes.strip():
+                    n_likes = 0
+                else:
+                    n_likes = int(n_likes)
+            except Exception:
+                n_likes = -1
+
+            # Read rating
+            try:
+                rating = 0
+                stars = raw_review.find_element_by_css_selector('div.Stars__StyledStars-sc-15olgyg-0.jucQbJ')\
+                                    .find_elements_by_tag_name('span')
+                for star in stars:
+                    star_color = star.find_element_by_tag_name('path').get_attribute('fill')
+                    rating += 0 if star_color == 'none' else 1
+            except Exception:
+                rating = -1
+                
+            # Read verification
+            is_verified = 'chưa xác thực'
+            try:
+                is_verified = raw_review.find_element_by_css_selector("[class='review-comment__avatar-bought']").text
+            except Exception:
+                pass
+
+            insert_new_review([review, is_verified, n_likes, rating, product_id])
+            print('\t\t\t', review, is_verified, n_likes, rating)
+
+        try:
+            # Check out-of-page
+            button_next = driver.find_element_by_css_selector('[class="btn next"]')
+            driver.execute_script("arguments[0].click();", button_next)
+            random_sleep()
+            page_id += 1
+        except TimeoutException:
+            print('\t\tOut of pages')
+            break
+
+
+def main():
+    # Step 0: Initialize
+    initialize_db()
+    driver = initialize_driver()
+
+    # Step 1: Get all categories in main page
+    all_categories = crawl_all_categories(driver)
+    db_cursor.execute("SELECT category_id FROM products;")
+    crawled_category_ids = list(set(
+        np.array(db_cursor.fetchall()).flatten().tolist()
+    ))
+    print(f"Categories crawled: {crawled_category_ids}")
+    random_sleep()
+
+    # Step 2: Get products per categories page-by-page, then crawl their info & reviews
+    main_page = driver.current_window_handle
+    random.shuffle(all_categories)
+    for category_info in all_categories:
+        # open new tab
+        driver.execute_script("window.open('');") 
+        driver.switch_to.window(driver.window_handles[-1])
+        random_sleep()
+
+        # crawl products' reviews per category
+        category_title = category_info[0].replace('"', "'")
+        query = f'SELECT id FROM categories WHERE title = "{category_title}" AND source = "{data_source}"'
+        execute_sql(query)
+        category_id = db_cursor.fetchone()[0]
+        if category_id not in crawled_category_ids:
+            crawl_single_category(driver, category_info[1], category_id)
+            random_sleep()
+
+        # close current tab
+        driver.close() 
+        driver.switch_to.window(main_page)
+
+    driver.close()
+    db_connector.close()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        time.sleep(69)
+
+
