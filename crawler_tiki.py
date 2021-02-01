@@ -72,7 +72,8 @@ def crawl_single_category(driver, category_url: str, category_id: int):
     category_url += '/?page={}'
     all_products = []
     page_id, max_pages = 1, 69
-    while page_id <= max_pages:
+    out_of_pages = False
+    while page_id <= max_pages and not out_of_pages:
         print(f"\n\n\nCrawling page {page_id} ...")
         product_css = '[class="product-item"]'
         products_raw = driver.find_elements_by_css_selector(product_css)
@@ -123,8 +124,8 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             # if any(ss in html_content.lower() for ss in ['rất tiếc', 'không tìm thấy']):
             #     break
         except Exception as e:
-            print(e)
-            break
+            print('Out-of-page Error:', e)
+            out_of_pages = True
 
 
 def crawl_single_product(driver, product_url: str, product_id: int):
@@ -134,8 +135,9 @@ def crawl_single_product(driver, product_url: str, product_id: int):
     # Scroll down to load all page
     simulate_scroll(driver)
 
-    page_id, max_pages = 1, 19
-    while page_id <= max_pages:
+    page_id, max_pages = 1, 27
+    out_of_pages = False
+    while page_id <= max_pages and not out_of_pages:
         print(f"\n\t\tCrawling page {page_id} ...")
         review_css = "div.style__StyledComment-sc-103p4dk-5.dDtAUu.review-comment"
         all_reviews = driver.find_elements_by_css_selector(review_css)
@@ -148,11 +150,11 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             # Read review content
             review_title = raw_review.find_element_by_css_selector('a.review-comment__title').text
             review_content = raw_review.find_element_by_css_selector('div.review-comment__content').text
-            review = review_title + '. ' + review_content
             
             # Filter-out non-text reviews
-            if not (review != '' or review.strip()):
+            if not (review_content != '' or review_content.strip()):
                 continue
+            review = '<title> ' + review_title + ' </title> ' + review_content
             review = review.replace('\n', '. ').replace('\t', '. ')
 
             # Read number of likes for this review
@@ -189,14 +191,14 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             print('\t\t\t', review, is_verified, n_likes, rating)
 
         try:
-            # Check out-of-page
+            # Check out-of-pages
             button_next = driver.find_element_by_css_selector('[class="btn next"]')
             driver.execute_script("arguments[0].click();", button_next)
             random_sleep()
             page_id += 1
         except TimeoutException:
             print('\t\tOut of pages')
-            break
+            out_of_pages = True
 
 
 def main():
@@ -230,6 +232,7 @@ def main():
         if category_id not in crawled_category_ids:
             crawl_single_category(driver, category_info[1], category_id)
             random_sleep()
+        print(f'Finish crawling {category_title} at {data_source}')
 
         # close current tab
         driver.close() 
