@@ -35,6 +35,7 @@ from utils import *
 
 working_dir = os.path.dirname(__file__)
 
+
 # Define global variables
 page_url = 'https://www.lazada.vn'
 data_source = 'lazada'
@@ -65,87 +66,6 @@ def crawl_all_categories(driver):
     return categories
 
 
-def crawl_single_product(driver, product_url: str, product_id: int):
-    print(f"\n\n\nLoading\n\t{product_url}")
-    driver.get(product_url)
-
-    # Scroll down to load all page
-    simulate_scroll(driver)
-
-    page_id, max_pages = 1, 19
-    while page_id <= max_pages:
-        try:
-            print(f"\n\t\tCrawling page {page_id} ...")
-            # Get the review details
-            WebDriverWait(driver, timeout=random.randint(6,9)).until(
-                method=expected_conditions.visibility_of_all_elements_located(
-                    locator=(By.CSS_SELECTOR, "div.item")
-                )
-            )
-        except Exception:
-            print("Can't find any review!")
-            break
-
-        # Get product reviews
-        all_reviews = driver.find_elements_by_css_selector("[class='item']")
-        for raw_review in all_reviews:
-            # Read review content
-            content = raw_review.find_element_by_css_selector("[class='item-content']")
-            # print(BS(content.get_attribute('innerHTML'), features="html5lib").prettify())
-            review = content.find_element_by_css_selector("[class='content']").text
-            
-            # Filter-out non-text reviews
-            if not (review != '' or review.strip()):
-                continue
-            review = review.replace('\n', '. ').replace('\t', '. ')
-
-            # Read number of likes for this review
-            n_likes = content.find_element_by_css_selector("[class='left']")\
-                                .find_element_by_css_selector("[class='']").text
-            # n_likes = content.find_element_by_xpath('//span[@class="left"]/span/span[@class=""]').text
-
-            # Read rating
-            try:
-	            rating = 0
-	            stars = raw_review.find_element_by_css_selector("[class='top']")\
-	                                .find_elements_by_css_selector("[class='star']")
-	            # stars = raw_review.find_elements_by_xpath('//div[@class="top"]/div/img[@class="star"]')
-	            for star in stars:
-	                star_url = star.get_attribute('src')
-	                star_image = Image.open(BytesIO(requests.get(url=star_url).content))
-	                rating += numberize_visual_star(star_image, positive_star, negative_star)
-	        except Exception:
-	        	rating = -1
-
-            # Read verification
-            is_verified = 'chưa xác thực'
-            try:
-                is_verified = raw_review.find_element_by_css_selector("[class='middle']")\
-                                        .find_element_by_css_selector("span.verify").text
-            except Exception:
-                pass
-
-            insert_new_review([review, is_verified, n_likes, rating, product_id])
-            print('\t\t\t', review, is_verified, n_likes, rating, product_id)
-
-        try:
-            # Check out-of-page
-            button_next_css = "button.next-pagination-item.next"
-            check_disabled_next_page = driver.find_elements_by_css_selector(button_next_css+"[disabled]")
-            if len(check_disabled_next_page) > 0:
-                break
-            button_next = WebDriverWait(driver, timeout=random.randint(6,9)).until(
-                method=expected_conditions.visibility_of_element_located(
-                    locator=(By.CSS_SELECTOR, button_next_css)
-                )
-            )
-            driver.execute_script("arguments[0].click();", button_next)
-            random_sleep()
-            page_id += 1
-        except TimeoutException:
-            break
-
-
 def crawl_single_category(driver, category_url: str, category_id: int):
     
     print(f"\n\n\nLoading\n\t{category_url}")
@@ -158,20 +78,21 @@ def crawl_single_category(driver, category_url: str, category_id: int):
     all_products = []
     page_id, max_pages = 1, 69
     while page_id <= max_pages:
+        product_css = '[data-qa-locator="product-item"]'
         try:
             print(f"\n\n\nCrawling page {page_id} ...")
             # Get the review details
             WebDriverWait(driver, timeout=random.randint(6,9)).until(
                 method=expected_conditions.visibility_of_all_elements_located(
-                    locator=(By.CSS_SELECTOR, '[data-qa-locator="product-item"]')
+                    locator=(By.CSS_SELECTOR, product_css)
                 )
             )
         except Exception:
-            print("Can't find any review!")
+            print("Can't find any item!")
             break
 
         # Get product info
-        products_raw = driver.find_elements_by_css_selector('[data-qa-locator="product-item"]')
+        products_raw = driver.find_elements_by_css_selector(product_css)
         for product_raw in products_raw:
             product_data = product_raw.find_element_by_css_selector('div.c16H9d')\
                                         .find_element_by_tag_name('a')
@@ -214,8 +135,87 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             break
 
 
-if __name__ == "__main__":
+def crawl_single_product(driver, product_url: str, product_id: int):
+    print(f"\n\n\nLoading\n\t{product_url}")
+    driver.get(product_url)
 
+    # Scroll down to load all page
+    simulate_scroll(driver)
+
+    page_id, max_pages = 1, 19
+    while page_id <= max_pages:
+        try:
+            print(f"\n\t\tCrawling page {page_id} ...")
+            # Get the review details
+            WebDriverWait(driver, timeout=random.randint(6,9)).until(
+                method=expected_conditions.visibility_of_all_elements_located(
+                    locator=(By.CSS_SELECTOR, "div.item")
+                )
+            )
+        except Exception:
+            print("Can't find any review!")
+            break
+
+        # Get product reviews
+        all_reviews = driver.find_elements_by_css_selector("[class='item']")
+        for raw_review in all_reviews:
+            # Read review content
+            content = raw_review.find_element_by_css_selector("[class='item-content']")
+            review = content.find_element_by_css_selector("[class='content']").text
+            
+            # Filter-out non-text reviews
+            if not (review != '' or review.strip()):
+                continue
+            review = review.replace('\n', '. ').replace('\t', '. ')
+
+            # Read number of likes for this review
+            n_likes = content.find_element_by_css_selector("[class='left']")\
+                                .find_element_by_css_selector("[class='']").text
+            # n_likes = content.find_element_by_xpath('//span[@class="left"]/span/span[@class=""]').text
+
+            # Read rating
+            try:
+                rating = 0
+                stars = raw_review.find_element_by_css_selector("[class='top']")\
+                                    .find_elements_by_css_selector("[class='star']")
+                # stars = raw_review.find_elements_by_xpath('//div[@class="top"]/div/img[@class="star"]')
+                for star in stars:
+                    star_url = star.get_attribute('src')
+                    star_image = Image.open(BytesIO(requests.get(url=star_url).content))
+                    rating += numberize_visual_star(star_image, positive_star, negative_star)
+            except Exception:
+                rating = -1
+
+            # Read verification
+            is_verified = 'chưa xác thực'
+            try:
+                is_verified = raw_review.find_element_by_css_selector("[class='middle']")\
+                                        .find_element_by_css_selector("span.verify").text
+            except Exception:
+                pass
+
+            insert_new_review([review, is_verified, n_likes, rating, product_id])
+            print('\t\t\t', review, is_verified, n_likes, rating)
+
+        try:
+            # Check out-of-page
+            button_next_css = "button.next-pagination-item.next"
+            check_disabled_next_page = driver.find_elements_by_css_selector(button_next_css+"[disabled]")
+            if len(check_disabled_next_page) > 0:
+                break
+            button_next = WebDriverWait(driver, timeout=random.randint(6,9)).until(
+                method=expected_conditions.visibility_of_element_located(
+                    locator=(By.CSS_SELECTOR, button_next_css)
+                )
+            )
+            driver.execute_script("arguments[0].click();", button_next)
+            random_sleep()
+            page_id += 1
+        except TimeoutException:
+            break
+
+
+def main():
     # Step 0: Initialize
     initialize_db()
     driver = initialize_driver()
@@ -226,7 +226,8 @@ if __name__ == "__main__":
     crawled_category_ids = list(set(
         np.array(db_cursor.fetchall()).flatten().tolist()
     ))
-    _ = input(f"Categories crawled: {crawled_category_ids}")
+    print(f"Categories crawled: {crawled_category_ids}")
+    random_sleep()
 
     # Step 2: Get products per categories page-by-page, then crawl their info & reviews
     main_page = driver.current_window_handle
@@ -252,6 +253,13 @@ if __name__ == "__main__":
 
     driver.close()
     db_connector.close()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        time.sleep(69)
 
 
 
