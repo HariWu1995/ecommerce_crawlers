@@ -227,7 +227,7 @@ def crawl_single_review(raw_review, product_id):
         rating = -1
 
     # Read verification
-    is_verified = 'đã xác thực'
+    is_verified = 'đã xác thực' if n_likes > 0 else 'chưa xác thực'
 
     insert_new_review([review, is_verified, n_likes, rating, product_id])
     print('\t\t\t', review, is_verified, n_likes, rating)
