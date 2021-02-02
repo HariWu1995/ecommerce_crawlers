@@ -51,7 +51,7 @@ logger.addHandler(logging.StreamHandler())
 logger.addHandler(logging.FileHandler(filename, 'a', encoding='utf8'))
 
 
-def crawl_all_categories(driver):
+def crawl_all_categories(driver, first_time: bool=False):
     driver.get(page_url)
 
     # Scroll down to load all page
@@ -66,7 +66,8 @@ def crawl_all_categories(driver):
             cat_raw.get_attribute('href'),
             data_source
         ]
-        # insert_new_category(category_info)
+        if first_time:
+            insert_new_category(category_info)
         categories.append(category_info)
     return categories
 
@@ -227,10 +228,10 @@ def crawl_single_review(raw_review, product_id):
         logger.info('\n\nCannot insert review\n\t'+review)
 
 
-def main(driver):
+def main(driver, first_time: bool):
 
     # Step 1: Get all categories in main page
-    all_categories = crawl_all_categories(driver)
+    all_categories = crawl_all_categories(driver, first_time)
     db_cursor.execute("SELECT category_id FROM products;")
     crawled_category_ids = list(set(
         np.array(db_cursor.fetchall()).flatten().tolist()
@@ -264,18 +265,19 @@ def main(driver):
 
 if __name__ == "__main__":
     initialize_db()
+    first_time = True
     while True:
         # Step 0: Initialize
         browser = random.choice(['chrome', 'firefox', 'edge'])
         driver = initialize_driver(browser)
 
         try:
-            main(driver)
+            main(driver, first_time)
         except Exception as e:
             logger.info("\n\n\nCrash ... Please wait a few seconds!!!")
             for t in print_progress(range(69)):
                 time.sleep(1)
-        
+        first_time = False
         driver.quit()
     db_connector.close()
 

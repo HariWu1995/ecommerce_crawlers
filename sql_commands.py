@@ -47,7 +47,7 @@ def initialize_db():
         CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
             title VARCHAR(32), 
-            url VARCHAR(128), 
+            url VARCHAR(128) UNIQUE, 
             source VARCHAR(8) 
         );
     """
@@ -57,7 +57,7 @@ def initialize_db():
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
             title VARCHAR(64), 
-            url VARCHAR(128), 
+            url VARCHAR(128) UNIQUE, 
             category_id INTEGER 
         );
     """
