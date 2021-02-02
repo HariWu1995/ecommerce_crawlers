@@ -62,7 +62,7 @@ def crawl_all_categories(driver):
             cat_raw.get_attribute('href')[::-1].split('/', 1)[-1][::-1],
             data_source
         ]
-        insert_new_category(category_info)
+        # insert_new_category(category_info)
         categories.append(category_info)
     return categories
 
@@ -220,10 +220,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             break
 
 
-def main(browser='firefox'):
-    # Step 0: Initialize
-    initialize_db()
-    driver = initialize_driver(browser)
+def main(driver):
 
     # Step 1: Get all categories in main page
     all_categories = crawl_all_categories(driver)
@@ -256,19 +253,23 @@ def main(browser='firefox'):
         driver.close() 
         driver.switch_to.window(main_page)
 
-    driver.close()
-    db_connector.close()
-
 
 if __name__ == "__main__":
+    initialize_db()
     while True:
+        # Step 0: Initialize
+        browser = random.choice(['chrome', 'firefox', 'edge'])
+        driver = initialize_driver(browser)
+
         try:
-            browser = random.choice(['chrome', 'firefox', 'edge'])
-            main(browser)
+            main(driver)
         except Exception as e:
             print("\n\n\nCrash ... Please wait a few seconds!!!")
             for t in print_progress(range(69)):
                 time.sleep(1)
+        
+        driver.close()
+    db_connector.close()
 
 
 
