@@ -127,7 +127,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             try:
                 crawl_single_product(driver, product_info[1], product_id)
             except Exception as e:
-                logger.info("Error while crawl\n\t"+product_info[1]+'\n'+e)
+                logger.info("Error while crawl\n\t"+product_info[1]+'\n'+str(e))
 
             # close tab
             driver.close() 
@@ -168,7 +168,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             try:
                 crawl_single_review(raw_review, product_id)
             except Exception as e:
-                logger.info("Error while crawling comment\n\t"+e)
+                logger.info("Error while crawling comment\n\t"+str(e))
 
         try:
             page_buttons_css = '[class="shopee-button-no-outline"]'
@@ -186,7 +186,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
                     page_id += 1
                     break
         except Exception as e:
-            logger.info("\n\t\tOut-of-page Error: "+e)
+            logger.info("\n\t\tOut-of-page Error: "+str(e))
             break
 
 
@@ -202,13 +202,16 @@ def crawl_single_review(raw_review, product_id):
     review = review.replace('\n', ' . ').replace('\t', ' . ')
 
     # Read number of likes for this review
-    n_likes = content.find_element_by_css_selector("[class='shopee-product-rating__like-count']")\
-                    .get_attribute("innerHTML")
-    n_likes = re.sub('[^0-9]', '', n_likes)
-    if n_likes == '':
-        n_likes = 0
-    else:
-        n_likes = int(n_likes)
+    try:
+        n_likes = content.find_element_by_css_selector("[class='shopee-product-rating__like-count']")\
+                        .get_attribute("innerHTML")
+        n_likes = re.sub('[^0-9]', '', n_likes)
+        if n_likes == '':
+            n_likes = 0
+        else:
+            n_likes = int(n_likes)
+    except Exception:
+        n_likes = -1
 
     # Read rating
     try:
