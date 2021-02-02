@@ -35,13 +35,13 @@ def numberize_visual_star(star_image: Image, positive_star, negative_star) -> in
     return 1 if pos_diff<neg_diff else 0
 
 
-def simulate_scroll(driver, n_downs: int=7, n_ups: int=2):
+def simulate_scroll(driver, n_downs: int=7, n_ups: int=2, min_secs=0.69, max_secs=1.69):
     for i in range(n_downs): 
         driver.execute_script(f"window.scrollBy(0, {random.randint(690, 960)})")
-        time.sleep(random.uniform(0.69, 0.96))
+        time.sleep(random.uniform(min_secs, max_secs))
     for i in range(n_ups): 
         driver.execute_script(f"window.scrollBy(0, -{random.randint(690, 960)})")
-        time.sleep(random.uniform(0.69, 0.96))
+        time.sleep(random.uniform(min_secs, max_secs))
 
 
 def normalize_url(url: str) -> str:

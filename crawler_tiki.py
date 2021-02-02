@@ -5,6 +5,7 @@ from tqdm import tqdm as print_progress
 
 import csv
 import json
+import logging
 
 import numpy as np
 import pandas as pd
@@ -41,6 +42,14 @@ working_dir = os.path.dirname(__file__)
 page_url = 'https://www.tiki.vn/'
 data_source = 'tiki'
 
+# Logging
+filename = f'{data_source}_{time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())}.txt'
+logger = logging.getLogger(filename)
+logger.setLevel(logging.DEBUG)
+# logger.propagate = False
+logger.addHandler(logging.StreamHandler())
+logger.addHandler(logging.FileHandler(filename, 'a', encoding='utf8'))
+
 
 def crawl_all_categories(driver):
     driver.get(page_url)
@@ -64,7 +73,7 @@ def crawl_all_categories(driver):
 
 def crawl_single_category(driver, category_url: str, category_id: int):
     
-    print(f"\n\n\nLoading\n\t{category_url}")
+    logger.info(f"\n\n\nLoading\n\t{category_url}")
     driver.get(category_url)
 
     # Scroll down to load all page
@@ -75,11 +84,11 @@ def crawl_single_category(driver, category_url: str, category_id: int):
     page_id, max_pages = 1, 69
     out_of_pages = False
     while page_id <= max_pages and not out_of_pages:
-        print(f"\n\n\nCrawling page {page_id} ...")
+        logger.info(f"\n\n\nCrawling page {page_id} ...")
         product_css = '[class="product-item"]'
         products_raw = driver.find_elements_by_css_selector(product_css)
         if len(products_raw) < 1:
-            print("Can't find any item!")
+            logger.info("Can't find any item!")
             break
 
         # Get product info
@@ -108,7 +117,10 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             query = f'SELECT id FROM products WHERE title = "{product_title}" AND category_id = "{category_id}"'
             execute_sql(query)
             product_id = db_cursor.fetchone()[0]
-            crawl_single_product(driver, product_info[1], product_id)
+            try:
+                crawl_single_product(driver, product_info[1], product_id)
+            except Exception as e:
+                logger.info("Error while crawl\n\t"+product_info[1]+'\n'+e)
 
             # close tab
             driver.close() 
@@ -125,12 +137,12 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             # if any(ss in html_content.lower() for ss in ['rất tiếc', 'không tìm thấy']):
             #     break
         except Exception as e:
-            print('\n\n\nOut-of-page Error:', e)
+            logger.info('\n\n\nOut-of-page Error: '+e)
             out_of_pages = True
 
 
 def crawl_single_product(driver, product_url: str, product_id: int):
-    print(f"\n\n\nLoading\n\t{product_url}")
+    logger.info(f"\n\n\nLoading\n\t{product_url}")
     driver.get(product_url)
 
     # Scroll down to load all page
@@ -139,62 +151,25 @@ def crawl_single_product(driver, product_url: str, product_id: int):
     page_id, max_pages = 1, 27
     out_of_pages = False
     while page_id <= max_pages and not out_of_pages:
-        print(f"\n\t\tCrawling page {page_id} ...")
+        logger.info(f"\n\t\tCrawling page {page_id} ...")
         review_css = "div.style__StyledComment-sc-103p4dk-5.dDtAUu.review-comment"
         all_reviews = driver.find_elements_by_css_selector(review_css)
         if len(all_reviews) < 1:
-            print("Can't find any review!")
+            logger.info("Can't find any review!")
             break
         
         # Get product reviews
         for raw_review in all_reviews:
-            # Read review content
-            review_title = raw_review.find_element_by_css_selector('a.review-comment__title').text
-            review_content = raw_review.find_element_by_css_selector('div.review-comment__content').text
-            
-            # Filter-out non-text reviews
-            if not (review_content != '' or review_content.strip()):
-                continue
-            review = '<title> ' + review_title + ' </title> ' + review_content
-            review = review.replace('\n', ' . ').replace('\t', ' . ')
-
-            # Read number of likes for this review
             try:
-                n_likes = raw_review.find_element_by_css_selector("[class='review-comment__thank ']")\
-                                    .find_element_by_tag_name("span").text
-                n_likes = re.sub('[^0-9]', '', n_likes)
-                if n_likes == '':
-                    n_likes = 0
-                else:
-                    n_likes = int(n_likes)
-            except Exception:
-                n_likes = -1
-
-            # Read rating
-            rating = 0
-            stars = raw_review.find_element_by_css_selector('div.Stars__StyledStars-sc-15olgyg-0.jucQbJ')\
-                                .find_element_by_tag_name('div').get_attribute('style')
-            rating = int(re.sub('[^0-9]', '', stars)) * 5 / 100
-            rating = int(rating)
-                
-            # Read verification
-            is_verified = 'chưa xác thực'
-            try:
-                is_verified = raw_review.find_element_by_css_selector("[class='review-comment__avatar-bought']").text
-            except Exception:
-                pass
-
-            try:
-                insert_new_review([review, is_verified, n_likes, rating, product_id])
-                print('\t\t\t', review, is_verified, n_likes, rating)
-            except Exception:
-                print('\n\nCannot insert review\n\t', review)
+                crawl_single_review(raw_review, product_id)
+            except Exception as e:
+                logger.info("Error while crawling comment\n\t"+e)
 
         try:
             # Check out-of-pages
             check_next_page_available = driver.find_elements_by_css_selector('[class="btn next"]')
             if len(check_next_page_available) < 1:
-                print('\n\t\tOut of pages')
+                logger.info('\n\t\tOut of pages')
                 out_of_pages = True
             else:
                 button_next = driver.find_element_by_css_selector('[class="btn next"]')
@@ -202,9 +177,54 @@ def crawl_single_product(driver, product_url: str, product_id: int):
                 random_sleep()
                 page_id += 1
         except Exception as e:
-            print('\n\t\tOut of pages error:', e)
+            logger.info('\n\t\tOut of pages error: '+e)
             out_of_pages = True
             break
+
+
+def crawl_single_review(raw_review, product_id):
+
+    # Read review content
+    review_title = raw_review.find_element_by_css_selector('a.review-comment__title').text
+    review_content = raw_review.find_element_by_css_selector('div.review-comment__content').text
+    
+    # Filter-out non-text reviews
+    if not (review_content != '' or review_content.strip()):
+        return 'Cannot crawl review'
+    review = '<title> ' + review_title + ' </title> ' + review_content
+    review = review.replace('\n', ' . ').replace('\t', ' . ')
+
+    # Read number of likes for this review
+    try:
+        n_likes = raw_review.find_element_by_css_selector("[class='review-comment__thank ']")\
+                            .find_element_by_tag_name("span").text
+        n_likes = re.sub('[^0-9]', '', n_likes)
+        if n_likes == '':
+            n_likes = 0
+        else:
+            n_likes = int(n_likes)
+    except Exception:
+        n_likes = -1
+
+    # Read rating
+    rating = 0
+    stars = raw_review.find_element_by_css_selector('div.Stars__StyledStars-sc-15olgyg-0.jucQbJ')\
+                        .find_element_by_tag_name('div').get_attribute('style')
+    rating = int(re.sub('[^0-9]', '', stars)) * 5 / 100
+    rating = int(rating)
+        
+    # Read verification
+    is_verified = 'chưa xác thực'
+    try:
+        is_verified = raw_review.find_element_by_css_selector("[class='review-comment__avatar-bought']").text
+    except Exception:
+        pass
+
+    try:
+        insert_new_review([review, is_verified, n_likes, rating, product_id])
+        print('\t\t\t', review, is_verified, n_likes, rating)
+    except Exception:
+        logger.info('\n\nCannot insert review\n\t'+review)
 
 
 def main(driver):
@@ -215,7 +235,7 @@ def main(driver):
     crawled_category_ids = list(set(
         np.array(db_cursor.fetchall()).flatten().tolist()
     ))
-    print(f"Categories crawled: {crawled_category_ids}")
+    logger.info(f"Categories crawled: {crawled_category_ids}")
     random_sleep()
 
     # Step 2: Get products per categories page-by-page, then crawl their info & reviews
@@ -235,7 +255,7 @@ def main(driver):
         if category_id not in crawled_category_ids:
             crawl_single_category(driver, category_info[1], category_id)
             random_sleep()
-        print(f'Finish crawling {category_title} at {data_source}')
+        logger.info(f'Finish crawling {category_title} at {data_source}')
 
         # close current tab
         driver.close() 
@@ -252,7 +272,7 @@ if __name__ == "__main__":
         try:
             main(driver)
         except Exception as e:
-            print("\n\n\nCrash ... Please wait a few seconds!!!")
+            logger.info("\n\n\nCrash ... Please wait a few seconds!!!")
             for t in print_progress(range(69)):
                 time.sleep(1)
         
