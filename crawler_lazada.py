@@ -268,7 +268,7 @@ if __name__ == "__main__":
             for t in print_progress(range(69)):
                 time.sleep(1)
         
-        driver.close()
+        driver.quit()
     db_connector.close()
 
 
