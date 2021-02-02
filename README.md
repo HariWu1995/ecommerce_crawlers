@@ -14,5 +14,7 @@ python crawler_lazada.py
 
 python crawler_tiki.py
 
+python crawler_shopee.py
+
 
 
