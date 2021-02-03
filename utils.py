@@ -3,6 +3,7 @@ import time
 import random
 import logging
 
+import re
 import numpy as np
 from PIL import Image
 from bs4 import BeautifulSoup as BS
@@ -11,6 +12,12 @@ from IPython.display import IFrame, display, HTML
 
 from w3lib.url import url_query_cleaner
 from url_normalize import url_normalize
+
+
+def clean_html(raw_html):
+  tags = re.compile('<.*?>')
+  clean_text = re.sub(tags, '', raw_html)
+  return clean_text
 
 
 def create_logger(data_source):
