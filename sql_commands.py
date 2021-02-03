@@ -1,7 +1,7 @@
 import sqlite3
 
 
-db_connector = sqlite3.connect('product_reviews_.db', timeout=69)
+db_connector = sqlite3.connect('product_reviews.db', timeout=69)
 db_cursor = db_connector.cursor()
 
 
