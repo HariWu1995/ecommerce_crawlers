@@ -41,14 +41,6 @@ working_dir = os.path.dirname(__file__)
 page_url = 'https://www.shopee.vn'
 data_source = 'shopee'
 
-# Logging
-filename = f'{data_source}_{time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())}.txt'
-logger = logging.getLogger(filename)
-logger.setLevel(logging.INFO)
-# logger.propagate = False
-logger.addHandler(logging.StreamHandler())
-logger.addHandler(logging.FileHandler(filename, 'a', encoding='utf8'))
-
 
 def crawl_all_categories(driver, first_time: bool=False):
     driver.get(page_url)
@@ -76,7 +68,7 @@ def crawl_all_categories(driver, first_time: bool=False):
 
 def crawl_single_category(driver, category_url: str, category_id: int):
     
-    logger.info(f"\n\n\nLoading\n\t{category_url}")
+    print(f"\n\n\nLoading\n\t{category_url}")
     driver.get(category_url)
 
     # Scroll down to load all page
@@ -89,7 +81,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
     while page_id <= max_pages:
         product_css = '[class="col-xs-2-4 shopee-search-item-result__item"]'
         try:
-            logger.info(f"\n\n\nCrawling page {page_id} ...")
+            print(f"\n\n\nCrawling page {page_id} ...")
             # Get the review details
             WebDriverWait(driver, timeout=random.randint(6,9)).until(
                 method=expected_conditions.visibility_of_all_elements_located(
@@ -97,7 +89,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
                 )
             )
         except Exception:
-            logger.info("Can't find any item!")
+            print("Can't find any item!")
             break
 
         # Get product info
@@ -112,7 +104,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
                 insert_new_product(product_info)
                 all_products.append(product_info)
             except Exception:
-                logger.info("Cannot crawl product")
+                print("Cannot crawl product")
                 continue
 
             # open new tab
@@ -128,7 +120,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             try:
                 crawl_single_product(driver, product_info[1], product_id)
             except Exception as e:
-                logger.info("Error while crawl\n\t"+product_info[1]+'\n'+str(e))
+                print("Error while crawl\n\t"+product_info[1]+'\n'+str(e))
 
             # close tab
             driver.close() 
@@ -141,7 +133,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
 
 
 def crawl_single_product(driver, product_url: str, product_id: int):
-    logger.info(f"\n\n\nLoading\n\t{product_url}")
+    print(f"\n\n\nLoading\n\t{product_url}")
     driver.get(product_url)
 
     # Scroll down to load all page
@@ -152,7 +144,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
         simulate_scroll(driver, 5, 1, 0.69, 0.96)
         review_css = '[class="shopee-product-rating"]'
         try:
-            logger.info(f"\n\t\tCrawling page {page_id} ...")
+            print(f"\n\t\tCrawling page {page_id} ...")
             # Get the review details
             WebDriverWait(driver, timeout=random.randint(6,9)).until(
                 method=expected_conditions.visibility_of_all_elements_located(
@@ -160,7 +152,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
                 )
             )
         except Exception:
-            logger.info("Can't find any review!")
+            print("Can't find any review!")
             break
 
         # Get product reviews
@@ -169,13 +161,13 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             try:
                 crawl_single_review(raw_review, product_id)
             except Exception as e:
-                logger.info("Error while crawling comment\n\t"+str(e))
+                print("Error while crawling comment\n\t"+str(e))
 
         try:
             page_buttons_css = '[class="shopee-button-no-outline"]'
             page_buttons = driver.find_elements_by_css_selector(page_buttons_css)
             if len(page_buttons) < 1:
-                logger.info("\n\t\tOnly 1 page")
+                print("\n\t\tOnly 1 page")
                 break
             for page_button in page_buttons:
                 page_button_id = page_button.get_attribute("innerHTML")
@@ -187,7 +179,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
                     page_id += 1
                     break
         except Exception as e:
-            logger.info("\n\t\tOut-of-page Error: "+str(e))
+            print("\n\t\tOut-of-page Error: "+str(e))
             break
 
 
@@ -245,7 +237,7 @@ def main(driver, first_time: bool):
     crawled_category_ids = list(set(
         np.array(db_cursor.fetchall()).flatten().tolist()
     ))
-    logger.info(f"Categories crawled: {crawled_category_ids}")
+    print(f"Categories crawled: {crawled_category_ids}")
     random_sleep()
 
     # Step 2: Get products per categories page-by-page, then crawl their info & reviews
@@ -265,7 +257,7 @@ def main(driver, first_time: bool):
         if category_id not in crawled_category_ids:
             crawl_single_category(driver, category_info[1], category_id)
             random_sleep()
-        logger.info(f'Finish crawling {category_title} at {data_source}')
+        print(f'Finish crawling {category_title} at {data_source}')
 
         # close current tab
         driver.close() 
@@ -283,7 +275,7 @@ if __name__ == "__main__":
         try:
             main(driver, first_time)
         except Exception as e:
-            logger.info("\n\n\nCrash ... Please wait a few seconds!!!")
+            print("\n\n\nCrash ... Please wait a few seconds!!!")
             for t in print_progress(range(69)):
                 time.sleep(1)
         first_time = False

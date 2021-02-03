@@ -1,6 +1,7 @@
 import os
 import time
 import random
+import logging
 
 import numpy as np
 from PIL import Image
@@ -10,6 +11,17 @@ from IPython.display import IFrame, display, HTML
 
 from w3lib.url import url_query_cleaner
 from url_normalize import url_normalize
+
+
+def create_logger(data_source):
+    # Logging
+    filename = f'{data_source}_{time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())}.txt'
+    logger = logging.getLogger(filename)
+    logger.setLevel(logging.INFO)
+    # logger.propagate = False
+    logger.addHandler(logging.StreamHandler())
+    logger.addHandler(logging.FileHandler(filename, 'a', encoding='utf8'))
+    return logger
 
 
 def print_html(content, width=600, height=600):

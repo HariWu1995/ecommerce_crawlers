@@ -46,14 +46,6 @@ positive_star = np.array(
 negative_star = np.array(
     Image.open(os.path.join(working_dir, 'ratings', data_source, 'negative.png')))
 
-# Logging
-filename = f'{data_source}_{time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())}.txt'
-logger = logging.getLogger(filename)
-logger.setLevel(logging.DEBUG)
-# logger.propagate = False
-logger.addHandler(logging.StreamHandler())
-logger.addHandler(logging.FileHandler(filename, 'a', encoding='utf8'))
-
 
 def crawl_all_categories(driver, first_time: bool=False):
     driver.get(page_url)
@@ -79,7 +71,7 @@ def crawl_all_categories(driver, first_time: bool=False):
 
 def crawl_single_category(driver, category_url: str, category_id: int):
     
-    logger.info(f"\n\n\nLoading\n\t{category_url}")
+    print(f"\n\n\nLoading\n\t{category_url}")
     driver.get(category_url)
 
     # Scroll down to load all page
@@ -91,7 +83,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
     while page_id <= max_pages:
         product_css = '[data-qa-locator="product-item"]'
         try:
-            logger.info(f"\n\n\nCrawling page {page_id} ...")
+            print(f"\n\n\nCrawling page {page_id} ...")
             # Get the review details
             WebDriverWait(driver, timeout=random.randint(6,9)).until(
                 method=expected_conditions.visibility_of_all_elements_located(
@@ -99,7 +91,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
                 )
             )
         except Exception:
-            logger.info("Can't find any item!")
+            print("Can't find any item!")
             break
 
         # Get product info
@@ -132,7 +124,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             try:
                 crawl_single_product(driver, product_info[1], product_id)
             except Exception as e:
-                logger.info("Error while crawl\n\t"+product_info[1]+'\n'+str(e))
+                print("Error while crawl\n\t"+product_info[1]+'\n'+str(e))
 
             # close tab
             driver.close() 
@@ -149,12 +141,12 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             if any(ss in html_content.lower() for ss in ['sorry', 'cannot find', 'any matches', 'no result']):
                 break
         except Exception as e:
-            logger.info(str(e))
+            print(str(e))
             break
 
 
 def crawl_single_product(driver, product_url: str, product_id: int):
-    logger.info(f"\n\n\nLoading\n\t{product_url}")
+    print(f"\n\n\nLoading\n\t{product_url}")
     driver.get(product_url)
 
     # Scroll down to load all page
@@ -163,7 +155,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
     page_id, max_pages = 1, 19
     while page_id <= max_pages:
         try:
-            logger.info(f"\n\t\tCrawling page {page_id} ...")
+            print(f"\n\t\tCrawling page {page_id} ...")
             # Get the review details
             WebDriverWait(driver, timeout=random.randint(6,9)).until(
                 method=expected_conditions.visibility_of_all_elements_located(
@@ -171,7 +163,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
                 )
             )
         except Exception:
-            logger.info("Can't find any review!")
+            print("Can't find any review!")
             break
 
         # Get product reviews
@@ -180,7 +172,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             try:
                 crawl_single_review(raw_review, product_id)
             except Exception as e:
-                logger.info("Error while crawling comment\n\t"+str(e))
+                print("Error while crawling comment\n\t"+str(e))
         
         try:
             # Check out-of-page
@@ -197,7 +189,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             random_sleep()
             page_id += 1
         except Exception as e:
-            logger.info('\n\n\nOut-of-page Error: '+str(e))
+            print('\n\n\nOut-of-page Error: '+str(e))
             break
 
 
@@ -249,7 +241,7 @@ def main(driver, first_time: bool):
     crawled_category_ids = list(set(
         np.array(db_cursor.fetchall()).flatten().tolist()
     ))
-    logger.info(f"Categories crawled: {crawled_category_ids}")
+    print(f"Categories crawled: {crawled_category_ids}")
     random_sleep()
 
     # Step 2: Get products per categories page-by-page, then crawl their info & reviews
@@ -269,7 +261,7 @@ def main(driver, first_time: bool):
         if category_id not in crawled_category_ids:
             crawl_single_category(driver, category_info[1], category_id)
             random_sleep()
-        logger.info(f'Finish crawling {category_title} at {data_source}')
+        print(f'Finish crawling {category_title} at {data_source}')
 
         # close current tab
         driver.close() 
@@ -287,7 +279,7 @@ if __name__ == "__main__":
         try:
             main(driver, first_time)
         except Exception as e:
-            logger.info("\n\n\nCrash ... Please wait a few seconds!!!")
+            print("\n\n\nCrash ... Please wait a few seconds!!!")
             for t in print_progress(range(69)):
                 time.sleep(1)
         first_time = False
