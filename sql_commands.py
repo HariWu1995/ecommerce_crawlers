@@ -1,7 +1,7 @@
 import sqlite3 as sqllib
 
 
-db_connector = sqllib.connect('product_reviews.db')
+db_connector = sqllib.connect('product_reviews_.db')
 db_cursor = db_connector.cursor()
 
 
@@ -47,7 +47,7 @@ def initialize_db():
         CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
             title VARCHAR(32), 
-            url VARCHAR(128) UNIQUE, 
+            url VARCHAR(128), 
             source VARCHAR(8) 
         );
     """
@@ -57,7 +57,7 @@ def initialize_db():
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
             title VARCHAR(64), 
-            url VARCHAR(128) UNIQUE, 
+            url VARCHAR(128), 
             category_id INTEGER 
         );
     """
