@@ -16,5 +16,7 @@ python crawler_tiki.py
 
 python crawler_shopee.py
 
+python crawler_sendo.py
+
 
 
