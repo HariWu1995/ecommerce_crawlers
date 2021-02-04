@@ -22,7 +22,7 @@ def execute_sql(query: str, max_tries: int=3):
 
 def insert_new_category(category_info: list or tuple):
     query = f"""
-        INSERT INTO categories (title, url, source) 
+        INSERT OR REPLACE INTO categories (title, url, source) 
         VALUES ("{category_info[0].replace('"', "'")}", "{category_info[1]}", "{category_info[2]}");
     """
     execute_sql(query)
@@ -30,7 +30,7 @@ def insert_new_category(category_info: list or tuple):
 
 def insert_new_product(product_info: list or tuple):
     query = f"""
-        INSERT INTO products (title, url, category_id) 
+        INSERT OR REPLACE INTO products (title, url, category_id) 
         VALUES ("{product_info[0].replace('"', "'")}", "{product_info[1]}", "{product_info[2]}");
     """
     execute_sql(query)
@@ -38,7 +38,7 @@ def insert_new_product(product_info: list or tuple):
 
 def insert_new_review(review_info: list or tuple):
     query = f"""
-        INSERT INTO reviews (content, is_verified, n_likes, rating, product_id) 
+        INSERT OR REPLACE INTO reviews (content, is_verified, n_likes, rating, product_id) 
         VALUES ("{review_info[0].replace('"', "'")}", "{review_info[1]}", {review_info[2]}, {review_info[3]}, {review_info[4]});
     """
     execute_sql(query)

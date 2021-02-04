@@ -59,13 +59,13 @@ def initialize_driver(browser_choice: str='firefox', use_proxy: bool=False):
 
     if not use_proxy:
         driver = WebDriver(executable_path=driver_args['executable_path'])
-        driver.set_window_size(690, 960)
+        driver.set_window_size(690, 690)
         return driver
 
     if browser_choice in ['chrome', 'firefox', 'gecko']:
         proxy_info.add_to_capabilities(driver_args['desired_capabilities'])
     driver = WebDriver(**driver_args)
-    driver.set_window_size(690, 960)
+    driver.set_window_size(690, 690)
     return driver
 
 

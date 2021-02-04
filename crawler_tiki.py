@@ -89,7 +89,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             product_url = product_raw.get_attribute('href').split('?', 1)[0]
             if product_url == 'https://tka.tiki.vn/pixel':
                 continue
-            
+
             product_title = product_raw.find_element_by_css_selector('[class="info"]')\
                                         .find_element_by_css_selector('[class="name"]')\
                                         .find_element_by_tag_name('span').text
@@ -246,9 +246,8 @@ def main(driver, first_time: bool):
         query = f'SELECT id FROM categories WHERE url = "{category_info[1]}" AND source = "{data_source}"'
         execute_sql(query)
         category_id = db_cursor.fetchone()[0]
-        if category_id not in crawled_category_ids:
-            crawl_single_category(driver, category_info[1], category_id)
-            random_sleep()
+        crawl_single_category(driver, category_info[1], category_id)
+        random_sleep()
         print(f'Finish crawling {category_info[1]} at {data_source}')
 
         # close current tab
