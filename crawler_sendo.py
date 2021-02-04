@@ -253,14 +253,13 @@ def main(driver):
         random_sleep()
 
         # crawl products' reviews per category
-        category_title = category_info[0].replace('"', "'")
-        query = f'SELECT id FROM categories WHERE title = "{category_title}" AND source = "{data_source}"'
+        query = f'SELECT id FROM categories WHERE url = "{category_info[1]}" AND source = "{data_source}"'
         execute_sql(query)
         category_id = db_cursor.fetchone()[0]
         if category_id not in crawled_category_ids:
             crawl_single_category(driver, category_info[1], category_id)
             random_sleep()
-        print(f'Finish crawling {category_title} at {data_source}')
+        print(f'Finish crawling {category_info[1]} at {data_source}')
 
         # close current tab
         driver.close() 
