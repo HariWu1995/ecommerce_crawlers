@@ -5,16 +5,19 @@ db_connector = sqlite3.connect('product_reviews.db', timeout=69)
 db_cursor = db_connector.cursor()
 
 
-def execute_sql(query: str):
-    try:
-        query = query.replace('\n', '').replace('\t', '')
-        while '  ' in query:
-            query = query.replace('  ', ' ')
-        db_cursor.execute(query)
-        db_connector.commit()
-    except Exception as e:
-        print("\n\nQuery Error", query, '\n\n', e)
-        # quit()
+def execute_sql(query: str, max_tries: int=3):
+    n_tries = 0
+    while n_tries < max_tries:
+        try:
+            query = query.replace('\n', '').replace('\t', '')
+            while '  ' in query:
+                query = query.replace('  ', ' ')
+            db_cursor.execute(query)
+            db_connector.commit()
+            break
+        except Exception as e:
+            print("\n\nQuery Error", query, '\n\n', e)
+            n_tries += 1
 
 
 def insert_new_category(category_info: list or tuple):
