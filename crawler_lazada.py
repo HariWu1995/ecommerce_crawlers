@@ -124,7 +124,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             try:
                 crawl_single_product(driver, product_info[1], product_id)
             except Exception as e:
-                print("Error while crawl\n\t"+product_info[1]+'\n'+str(e))
+                print("Error while crawl\n\t", product_info[1], '\n', e)
 
             # close tab
             driver.close() 
@@ -141,7 +141,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             if any(ss in html_content.lower() for ss in ['sorry', 'cannot find', 'any matches', 'no result']):
                 break
         except Exception as e:
-            print(str(e))
+            print(e)
             break
 
 
@@ -172,7 +172,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             try:
                 crawl_single_review(raw_review, product_id)
             except Exception as e:
-                print("Error while crawling comment\n\t"+str(e))
+                print("Error while crawling comment\n\t", e)
         
         try:
             # Check out-of-page
@@ -189,7 +189,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             random_sleep()
             page_id += 1
         except Exception as e:
-            print('\n\n\nOut-of-page Error: '+str(e))
+            print('\n\n\nOut-of-page Error: ', e)
             break
 
 
