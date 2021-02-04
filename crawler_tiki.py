@@ -86,17 +86,17 @@ def crawl_single_category(driver, category_url: str, category_id: int):
 
         # Get product info
         for product_raw in products_raw:
+            product_url = product_raw.get_attribute('href').split('?', 1)[0]
+            if product_url == 'https://tka.tiki.vn/pixel':
+                continue
+            
             product_title = product_raw.find_element_by_css_selector('[class="info"]')\
                                         .find_element_by_css_selector('[class="name"]')\
                                         .find_element_by_tag_name('span').text
             if not (product_title != '' or product_title.strip()):
                 continue
 
-            product_info = [
-                product_title, 
-                product_raw.get_attribute('href').split('?', 1)[0],
-                category_id
-            ]
+            product_info = [product_title, product_url, category_id]
             insert_new_product(product_info)
             all_products.append(product_info)
 
