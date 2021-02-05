@@ -124,7 +124,9 @@ def crawl_single_category(driver, category_url: str, category_id: int):
             try:
                 crawl_single_product(driver, product_info[1], product_id)
             except Exception as e:
-                print("Error while crawl\n\t", product_info[1], '\n', e)
+                # print("Error while crawl\n\t", product_info[1])
+                # print(e)
+                pass
 
             # close tab
             driver.close() 
@@ -172,7 +174,8 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             try:
                 crawl_single_review(raw_review, product_id)
             except Exception as e:
-                print("Error while crawling comment\n\t", e)
+                # print("Error while crawling comment\n\t", e)
+                pass
         
         try:
             # Check out-of-page
@@ -189,7 +192,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
             random_sleep()
             page_id += 1
         except Exception as e:
-            print('\n\n\nOut-of-page Error: ', e)
+            # print('\n\n\nOut-of-page Error: ', e)
             break
 
 
@@ -230,7 +233,7 @@ def crawl_single_review(raw_review, product_id):
         pass
 
     insert_new_review([review, is_verified, n_likes, rating, product_id])
-    print('\t\t\t', review, is_verified, n_likes, rating)
+    # print('\t\t\t', review, is_verified, n_likes, rating)
 
 
 def main(driver, first_time: bool):
@@ -259,7 +262,7 @@ def main(driver, first_time: bool):
         category_id = db_cursor.fetchone()[0]
         crawl_single_category(driver, category_info[1], category_id)
         random_sleep()
-        print(f'Finish crawling {category_info[1]} at {data_source}')
+        # print(f'Finish crawling {category_info[1]} at {data_source}')
 
         # close current tab
         driver.close() 
