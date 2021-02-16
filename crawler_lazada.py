@@ -79,7 +79,7 @@ def crawl_single_category(driver, category_url: str, category_id: int):
 
     category_url += '/?page={}'
     all_products = []
-    page_id, max_pages = 1, 69
+    page_id, max_pages = 1, 49
     while page_id <= max_pages:
         product_css = '[data-qa-locator="product-item"]'
         try:
@@ -260,8 +260,9 @@ def main(driver, first_time: bool):
         query = f'SELECT id FROM categories WHERE url = "{category_info[1]}" AND source = "{data_source}"'
         execute_sql(query)
         category_id = db_cursor.fetchone()[0]
-        crawl_single_category(driver, category_info[1], category_id)
-        random_sleep()
+        if category_id not in crawled_category_ids:
+            crawl_single_category(driver, category_info[1], category_id)
+            random_sleep()
         # print(f'Finish crawling {category_info[1]} at {data_source}')
 
         # close current tab

@@ -76,9 +76,9 @@ def crawl_all_categories(driver):
 
 def crawl_single_category(driver, category_url: str, category_id: int):
 
-    category_url += '?page={}&sortType=norder_30_desc'
+    category_url += '?page={}&sortType=rating_percent_desc'
     all_products = []
-    page_id, max_pages = 1, 69
+    page_id, max_pages = 1, 27
     while page_id <= max_pages:
         
         # Go to next page
@@ -151,7 +151,7 @@ def crawl_single_product(driver, product_url: str, product_id: int):
         if tab_name.lower() == 'đánh giá' and not tab_active:
             driver.execute_script("arguments[0].click();", tab_type)
 
-    page_id, max_pages = 1, 69
+    page_id, max_pages = 1, 49
     while page_id <= max_pages:
         simulate_scroll(driver, 5, 3, 0.69, 0.96)
         print(f"\n\t\tCrawling page {page_id} ...")
@@ -259,8 +259,9 @@ def main(driver):
         query = f'SELECT id FROM categories WHERE url = "{category_info[1]}" AND source = "{data_source}"'
         execute_sql(query)
         category_id = db_cursor.fetchone()[0]
-        crawl_single_category(driver, category_info[1], category_id)
-        random_sleep()
+        if category_id not in crawled_category_ids:
+            crawl_single_category(driver, category_info[1], category_id)
+            random_sleep()
         # print(f'Finish crawling {category_info[1]} at {data_source}')
 
         # close current tab
